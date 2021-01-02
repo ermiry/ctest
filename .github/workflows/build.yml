@@ -1,14 +1,12 @@
-name: Ctest Continuous Integration
+name: CTest Continuous Integration
 
 on:
   push:
-    branches-ignore:
-      - 'master'
-      - '*beta'
+    branches:
+      - '*'
   pull_request:
-    branches-ignore:
-      - 'master'
-      - '*beta'
+    branches:
+      - '*'
 
 jobs:
   build:
