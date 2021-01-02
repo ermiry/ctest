@@ -1,0 +1,28 @@
+name: Ctest Continuous Integration
+
+on:
+  push:
+    branches-ignore:
+      - 'master'
+      - '*beta'
+  pull_request:
+    branches-ignore:
+      - 'master'
+      - '*beta'
+
+jobs:
+  build:
+    name: Ctest build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: System Information
+        run: gcc --version && g++ --version
+
+      - name: gcc make
+        run: make
+      - name: clean
+        run: make clean
+      - name: g++ make
+        run: make CC=g++
