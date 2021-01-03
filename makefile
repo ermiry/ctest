@@ -23,6 +23,8 @@ SRCEXT      := c
 DEPEXT      := d
 OBJEXT      := o
 
+COVEXT		:= gcov
+
 # common flags
 # -Wconversion
 COMMON		:= -march=native \
@@ -71,13 +73,16 @@ OBJECTS     := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.$(OBJE
 TESTDIR		:= test
 TESTBUILD	:= $(TESTDIR)/objs
 TESTTARGET	:= $(TESTDIR)/bin
+TESTCOV		:= $(TESTDIR)/coverage
 
-TESTFLAGS	:= -g $(DEFINES) -Wall -Wno-unknown-pragmas -Wno-format
-TESTLIBS	:= $(PTHREAD) -L ./bin -l ctest
+TESTFLAGS	:= -g $(DEFINES) -Wall -Wno-unknown-pragmas -Wno-format -fprofile-arcs -ftest-coverage
+TESTLIBS	:= $(PTHREAD) -lgcov --coverage -L ./bin -l ctest
 TESTINC		:= -I ./$(TESTDIR)
 
 TESTS		:= $(shell find $(TESTDIR) -type f -name *.$(SRCEXT))
 TESTOBJS	:= $(patsubst $(TESTDIR)/%,$(TESTBUILD)/%,$(TESTS:.$(SRCEXT)=.$(OBJEXT)))
+
+COVOBJS		:= $(patsubst $(TESTDIR)/%,$(TESTBUILD)/%,$(TESTS:.$(SRCEXT)=.$(SRCEXT).$(COVEXT)))
 
 # all: directories $(TARGET)
 all: directories $(SLIB)
@@ -101,6 +106,7 @@ clear:
 	@$(RM) -rf $(BUILDDIR)
 	@$(RM) -rf $(TESTBUILD)
 	@$(RM) -rf $(TESTTARGET)
+	@$(RM) -rf $(TESTCOV)
 
 clean: clear
 	@$(RM) -rf $(TARGETDIR)
@@ -127,7 +133,7 @@ $(BUILDDIR)/%.$(OBJEXT): $(SRCDIR)/%.$(SRCEXT)
 
 test: $(TESTOBJS)
 	@mkdir -p ./$(TESTTARGET)
-	$(CC) -g -I ./$(INCDIR) $(TESTINC) -L ./$(TARGETDIR) ./$(TESTBUILD)/*.o -o ./$(TESTTARGET)/test $(TESTLIBS)
+	$(CC) -g -I ./$(INCDIR) $(TESTINC) -L ./$(TARGETDIR) ./$(TESTBUILD)/*.o ./$(TESTBUILD)/utils/*.o -o ./$(TESTTARGET)/test $(TESTLIBS)
 
 # compile tests
 $(TESTBUILD)/%.$(OBJEXT): $(TESTDIR)/%.$(SRCEXT)
@@ -138,5 +144,21 @@ $(TESTBUILD)/%.$(OBJEXT): $(TESTDIR)/%.$(SRCEXT)
 	@sed -e 's|.*:|$(TESTBUILD)/$*.$(OBJEXT):|' < $(TESTBUILD)/$*.$(DEPEXT).tmp > $(TESTBUILD)/$*.$(DEPEXT)
 	@sed -e 's/.*://' -e 's/\\$$//' < $(TESTBUILD)/$*.$(DEPEXT).tmp | fmt -1 | sed -e 's/^ *//' -e 's/$$/:/' >> $(TESTBUILD)/$*.$(DEPEXT)
 	@rm -f $(TESTBUILD)/$*.$(DEPEXT).tmp
+
+test-run:
+	@bash test/run.sh
+
+test-coverage: $(COVOBJS)
+
+coverage-init:
+	@mkdir -p ./$(TESTCOV)
+
+coverage: coverage-init test-run test-coverage
+
+# get coverage reports
+$(TESTBUILD)/%.$(SRCEXT).$(COVEXT): $(TESTDIR)/%.$(SRCEXT)
+	@mkdir -p $(dir $@)
+	gcov $< --object-directory $(dir $@)
+	mv $(notdir $@) ./$(TESTCOV)
 
 .PHONY: all clean clear test
