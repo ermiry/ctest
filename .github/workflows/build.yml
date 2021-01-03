@@ -55,6 +55,19 @@ jobs:
       - name: gcc run tests
         run: bash test/run.sh
 
+      - name: coverage
+        run: make coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: ./test/coverage/
+          flags: unittests
+          name: build
+          fail_ci_if_error: true
+          verbose: true
+
       - name: clear
         run: make clear
 
