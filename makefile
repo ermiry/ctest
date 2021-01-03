@@ -1,7 +1,7 @@
 TYPE		:= development
 
-TARGET      := ctest
-# SLIB		:= libctest.so
+# TARGET      := ctest
+SLIB		:= libctest.so
 
 PTHREAD 	:= -l pthread
 MATH		:= -lm
@@ -67,8 +67,20 @@ INCDEP      := -I $(INCDIR)
 SOURCES     := $(shell find $(SRCDIR) -type f -name *.$(SRCEXT))
 OBJECTS     := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.$(OBJEXT)))
 
-all: directories $(TARGET)
-# all: directories $(SLIB)
+# tests
+TESTDIR		:= test
+TESTBUILD	:= $(TESTDIR)/objs
+TESTTARGET	:= $(TESTDIR)/bin
+
+TESTFLAGS	:= -g $(DEFINES) -Wall -Wno-unknown-pragmas -Wno-format
+TESTLIBS	:= $(PTHREAD) -L ./bin -l ctest
+TESTINC		:= -I ./$(TESTDIR)
+
+TESTS		:= $(shell find $(TESTDIR) -type f -name *.$(SRCEXT))
+TESTOBJS	:= $(patsubst $(TESTDIR)/%,$(TESTBUILD)/%,$(TESTS:.$(SRCEXT)=.$(OBJEXT)))
+
+# all: directories $(TARGET)
+all: directories $(SLIB)
 
 run: 
 	./$(TARGETDIR)/$(TARGET)
@@ -86,7 +98,9 @@ directories:
 	@mkdir -p $(BUILDDIR)
 
 clear:
-	@$(RM) -rf $(BUILDDIR) 
+	@$(RM) -rf $(BUILDDIR)
+	@$(RM) -rf $(TESTBUILD)
+	@$(RM) -rf $(TESTTARGET)
 
 clean: clear
 	@$(RM) -rf $(TARGETDIR)
@@ -95,11 +109,11 @@ clean: clear
 -include $(OBJECTS:.$(OBJEXT)=.$(DEPEXT))
 
 # link
-$(TARGET): $(OBJECTS)
-	$(CC) $^ $(LIB) -o $(TARGETDIR)/$(TARGET)
+# $(TARGET): $(OBJECTS)
+# 	$(CC) $^ $(LIB) -o $(TARGETDIR)/$(TARGET)
 
-# $(SLIB): $(OBJECTS)
-# 	$(CC) $^ $(LIB) -shared -o $(TARGETDIR)/$(SLIB)
+$(SLIB): $(OBJECTS)
+	$(CC) $^ $(LIB) -shared -o $(TARGETDIR)/$(SLIB)
 
 # compile sources
 $(BUILDDIR)/%.$(OBJEXT): $(SRCDIR)/%.$(SRCEXT)
@@ -111,4 +125,18 @@ $(BUILDDIR)/%.$(OBJEXT): $(SRCDIR)/%.$(SRCEXT)
 	@sed -e 's/.*://' -e 's/\\$$//' < $(BUILDDIR)/$*.$(DEPEXT).tmp | fmt -1 | sed -e 's/^ *//' -e 's/$$/:/' >> $(BUILDDIR)/$*.$(DEPEXT)
 	@rm -f $(BUILDDIR)/$*.$(DEPEXT).tmp
 
-.PHONY: all clean clear
+test: $(TESTOBJS)
+	@mkdir -p ./$(TESTTARGET)
+	$(CC) -g -I ./$(INCDIR) $(TESTINC) -L ./$(TARGETDIR) ./$(TESTBUILD)/*.o -o ./$(TESTTARGET)/test $(TESTLIBS)
+
+# compile tests
+$(TESTBUILD)/%.$(OBJEXT): $(TESTDIR)/%.$(SRCEXT)
+	@mkdir -p $(dir $@)
+	$(CC) $(TESTFLAGS) $(INC) $(TESTINC) $(TESTLIBS) -c -o $@ $<
+	@$(CC) $(TESTFLAGS) $(INCDEP) -MM $(TESTDIR)/$*.$(SRCEXT) > $(TESTBUILD)/$*.$(DEPEXT)
+	@cp -f $(TESTBUILD)/$*.$(DEPEXT) $(TESTBUILD)/$*.$(DEPEXT).tmp
+	@sed -e 's|.*:|$(TESTBUILD)/$*.$(OBJEXT):|' < $(TESTBUILD)/$*.$(DEPEXT).tmp > $(TESTBUILD)/$*.$(DEPEXT)
+	@sed -e 's/.*://' -e 's/\\$$//' < $(TESTBUILD)/$*.$(DEPEXT).tmp | fmt -1 | sed -e 's/^ *//' -e 's/$$/:/' >> $(TESTBUILD)/$*.$(DEPEXT)
+	@rm -f $(TESTBUILD)/$*.$(DEPEXT).tmp
+
+.PHONY: all clean clear test
