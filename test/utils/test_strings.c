@@ -5,7 +5,7 @@
 
 #include <ctest/utils.h>
 
-#include "test.h"
+#include "../test.h"
 
 #define STRING_LEN		32
 
