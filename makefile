@@ -82,8 +82,18 @@ TESTBUILD	:= $(TESTDIR)/objs
 TESTTARGET	:= $(TESTDIR)/bin
 TESTCOV		:= coverage/test
 
-TESTFLAGS	:= -g $(DEFINES) -Wall -Wno-unknown-pragmas -Wno-format -fprofile-arcs -ftest-coverage
-TESTLIBS	:= $(PTHREAD) -lgcov --coverage -L ./bin -l ctest
+TESTFLAGS	:= -g $(DEFINES) -Wall -Wno-unknown-pragmas -Wno-format
+
+ifeq ($(TYPE), test)
+	TESTFLAGS += -fprofile-arcs -ftest-coverage
+endif
+
+TESTLIBS	:= $(PTHREAD) -L ./bin -l ctest
+
+ifeq ($(TYPE), test)
+	TESTLIBS += -lgcov --coverage
+endif
+
 TESTINC		:= -I ./$(TESTDIR)
 
 TESTS		:= $(shell find $(TESTDIR) -type f -name *.$(SRCEXT))
