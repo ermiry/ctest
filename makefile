@@ -1,7 +1,7 @@
 TYPE		:= development
 
-TARGET      := ctest
-# SLIB		:= libctest.so
+# TARGET      := ctest
+SLIB		:= libctest.so
 
 PTHREAD 	:= -l pthread
 MATH		:= -lm
@@ -22,6 +22,8 @@ TARGETDIR   := bin
 SRCEXT      := c
 DEPEXT      := d
 OBJEXT      := o
+
+COVEXT		:= gcov
 
 # common flags
 # -Wconversion
@@ -67,8 +69,23 @@ INCDEP      := -I $(INCDIR)
 SOURCES     := $(shell find $(SRCDIR) -type f -name *.$(SRCEXT))
 OBJECTS     := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.$(OBJEXT)))
 
-all: directories $(TARGET)
-# all: directories $(SLIB)
+# tests
+TESTDIR		:= test
+TESTBUILD	:= $(TESTDIR)/objs
+TESTTARGET	:= $(TESTDIR)/bin
+TESTCOV		:= $(TESTDIR)/coverage
+
+TESTFLAGS	:= -g $(DEFINES) -Wall -Wno-unknown-pragmas -Wno-format -fprofile-arcs -ftest-coverage
+TESTLIBS	:= $(PTHREAD) -lgcov --coverage -L ./bin -l ctest
+TESTINC		:= -I ./$(TESTDIR)
+
+TESTS		:= $(shell find $(TESTDIR) -type f -name *.$(SRCEXT))
+TESTOBJS	:= $(patsubst $(TESTDIR)/%,$(TESTBUILD)/%,$(TESTS:.$(SRCEXT)=.$(OBJEXT)))
+
+COVOBJS		:= $(patsubst $(TESTDIR)/%,$(TESTBUILD)/%,$(TESTS:.$(SRCEXT)=.$(SRCEXT).$(COVEXT)))
+
+# all: directories $(TARGET)
+all: directories $(SLIB)
 
 run: 
 	./$(TARGETDIR)/$(TARGET)
@@ -86,7 +103,10 @@ directories:
 	@mkdir -p $(BUILDDIR)
 
 clear:
-	@$(RM) -rf $(BUILDDIR) 
+	@$(RM) -rf $(BUILDDIR)
+	@$(RM) -rf $(TESTBUILD)
+	@$(RM) -rf $(TESTTARGET)
+	@$(RM) -rf $(TESTCOV)
 
 clean: clear
 	@$(RM) -rf $(TARGETDIR)
@@ -95,11 +115,11 @@ clean: clear
 -include $(OBJECTS:.$(OBJEXT)=.$(DEPEXT))
 
 # link
-$(TARGET): $(OBJECTS)
-	$(CC) $^ $(LIB) -o $(TARGETDIR)/$(TARGET)
+# $(TARGET): $(OBJECTS)
+# 	$(CC) $^ $(LIB) -o $(TARGETDIR)/$(TARGET)
 
-# $(SLIB): $(OBJECTS)
-# 	$(CC) $^ $(LIB) -shared -o $(TARGETDIR)/$(SLIB)
+$(SLIB): $(OBJECTS)
+	$(CC) $^ $(LIB) -shared -o $(TARGETDIR)/$(SLIB)
 
 # compile sources
 $(BUILDDIR)/%.$(OBJEXT): $(SRCDIR)/%.$(SRCEXT)
@@ -111,4 +131,34 @@ $(BUILDDIR)/%.$(OBJEXT): $(SRCDIR)/%.$(SRCEXT)
 	@sed -e 's/.*://' -e 's/\\$$//' < $(BUILDDIR)/$*.$(DEPEXT).tmp | fmt -1 | sed -e 's/^ *//' -e 's/$$/:/' >> $(BUILDDIR)/$*.$(DEPEXT)
 	@rm -f $(BUILDDIR)/$*.$(DEPEXT).tmp
 
-.PHONY: all clean clear
+test: $(TESTOBJS)
+	@mkdir -p ./$(TESTTARGET)
+	$(CC) -g -I ./$(INCDIR) $(TESTINC) -L ./$(TARGETDIR) ./$(TESTBUILD)/*.o ./$(TESTBUILD)/utils/*.o -o ./$(TESTTARGET)/test $(TESTLIBS)
+
+# compile tests
+$(TESTBUILD)/%.$(OBJEXT): $(TESTDIR)/%.$(SRCEXT)
+	@mkdir -p $(dir $@)
+	$(CC) $(TESTFLAGS) $(INC) $(TESTINC) $(TESTLIBS) -c -o $@ $<
+	@$(CC) $(TESTFLAGS) $(INCDEP) -MM $(TESTDIR)/$*.$(SRCEXT) > $(TESTBUILD)/$*.$(DEPEXT)
+	@cp -f $(TESTBUILD)/$*.$(DEPEXT) $(TESTBUILD)/$*.$(DEPEXT).tmp
+	@sed -e 's|.*:|$(TESTBUILD)/$*.$(OBJEXT):|' < $(TESTBUILD)/$*.$(DEPEXT).tmp > $(TESTBUILD)/$*.$(DEPEXT)
+	@sed -e 's/.*://' -e 's/\\$$//' < $(TESTBUILD)/$*.$(DEPEXT).tmp | fmt -1 | sed -e 's/^ *//' -e 's/$$/:/' >> $(TESTBUILD)/$*.$(DEPEXT)
+	@rm -f $(TESTBUILD)/$*.$(DEPEXT).tmp
+
+test-run:
+	@bash test/run.sh
+
+test-coverage: $(COVOBJS)
+
+coverage-init:
+	@mkdir -p ./$(TESTCOV)
+
+coverage: coverage-init test-run test-coverage
+
+# get coverage reports
+$(TESTBUILD)/%.$(SRCEXT).$(COVEXT): $(TESTDIR)/%.$(SRCEXT)
+	@mkdir -p $(dir $@)
+	gcov $< --object-directory $(dir $@)
+	mv $(notdir $@) ./$(TESTCOV)
+
+.PHONY: all clean clear test

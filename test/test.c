@@ -1,12 +1,18 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "utils/utils.h"
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 
 int main (int argc, char const **argv) {
 
-	(void) printf ("ctest is working!\n\n");
+	(void) printf ("Testing UTILS...\n");
+
+	utils_tests_c_strings ();
+
+	(void) printf ("\nDone with UTILS tests!\n\n");
 
 	return 0;
 
