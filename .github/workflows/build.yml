@@ -21,13 +21,6 @@ jobs:
       - name: gcc make
         run: make
 
-      - name: Archive Shared Library
-        uses: actions/upload-artifact@v2
-        with:
-          name: ctest-lib
-          path: ./bin/libctest.so
-          retention-days: 1
-
       - name: clean
         run: make clean
 
@@ -41,18 +34,14 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Get Shared Library
-        uses: actions/download-artifact@v2
-        with:
-          name: ctest-lib
-          path: ./bin
-
-      # - name: Display working directory structure
-      #   run: ls -R
-
+      # compile
+      - name: gcc make
+        run: make TYPE=test
       - name: gcc tests
         run: make test
-      - name: gcc run tests
+
+      # run
+      - name: test
         run: bash test/run.sh
 
       - name: coverage
@@ -62,7 +51,7 @@ jobs:
         uses: codecov/codecov-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          directory: ./test/coverage/
+          directory: ./coverage/
           flags: unittests
           name: build
           fail_ci_if_error: true

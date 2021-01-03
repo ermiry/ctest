@@ -63,17 +63,24 @@ endif
 CFLAGS += -fPIC $(COMMON)
 
 LIB         := $(PTHREAD) $(MATH)
+
+ifeq ($(TYPE), test)
+	LIB += -lgcov --coverage
+endif
+
 INC         := -I $(INCDIR) -I /usr/local/include
 INCDEP      := -I $(INCDIR)
 
 SOURCES     := $(shell find $(SRCDIR) -type f -name *.$(SRCEXT))
 OBJECTS     := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.$(OBJEXT)))
 
+SRCCOVS		:= $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.$(SRCEXT).$(COVEXT)))
+
 # tests
 TESTDIR		:= test
 TESTBUILD	:= $(TESTDIR)/objs
 TESTTARGET	:= $(TESTDIR)/bin
-TESTCOV		:= $(TESTDIR)/coverage
+TESTCOV		:= coverage/test
 
 TESTFLAGS	:= -g $(DEFINES) -Wall -Wno-unknown-pragmas -Wno-format -fprofile-arcs -ftest-coverage
 TESTLIBS	:= $(PTHREAD) -lgcov --coverage -L ./bin -l ctest
@@ -82,13 +89,15 @@ TESTINC		:= -I ./$(TESTDIR)
 TESTS		:= $(shell find $(TESTDIR) -type f -name *.$(SRCEXT))
 TESTOBJS	:= $(patsubst $(TESTDIR)/%,$(TESTBUILD)/%,$(TESTS:.$(SRCEXT)=.$(OBJEXT)))
 
-COVOBJS		:= $(patsubst $(TESTDIR)/%,$(TESTBUILD)/%,$(TESTS:.$(SRCEXT)=.$(SRCEXT).$(COVEXT)))
+TESTCOVS	:= $(patsubst $(TESTDIR)/%,$(TESTBUILD)/%,$(TESTS:.$(SRCEXT)=.$(SRCEXT).$(COVEXT)))
+
+COVOBJS		:= $(SRCCOVS) $(TESTCOVS)
 
 # all: directories $(TARGET)
 all: directories $(SLIB)
 
-run: 
-	./$(TARGETDIR)/$(TARGET)
+# run: 
+# 	./$(TARGETDIR)/$(TARGET)
 
 # install: $(SLIB)
 # 	install -m 644 ./bin/libctest.so /usr/local/lib/
@@ -106,10 +115,10 @@ clear:
 	@$(RM) -rf $(BUILDDIR)
 	@$(RM) -rf $(TESTBUILD)
 	@$(RM) -rf $(TESTTARGET)
-	@$(RM) -rf $(TESTCOV)
 
 clean: clear
 	@$(RM) -rf $(TARGETDIR)
+	@$(RM) -rf coverage
 
 # pull in dependency info for *existing* .o files
 -include $(OBJECTS:.$(OBJEXT)=.$(DEPEXT))
@@ -145,20 +154,26 @@ $(TESTBUILD)/%.$(OBJEXT): $(TESTDIR)/%.$(SRCEXT)
 	@sed -e 's/.*://' -e 's/\\$$//' < $(TESTBUILD)/$*.$(DEPEXT).tmp | fmt -1 | sed -e 's/^ *//' -e 's/$$/:/' >> $(TESTBUILD)/$*.$(DEPEXT)
 	@rm -f $(TESTBUILD)/$*.$(DEPEXT).tmp
 
-test-run:
-	@bash test/run.sh
+# test-run:
+# 	@bash test/run.sh
 
 test-coverage: $(COVOBJS)
 
 coverage-init:
+	@mkdir -p ./coverage
 	@mkdir -p ./$(TESTCOV)
 
-coverage: coverage-init test-run test-coverage
+coverage: coverage-init test-coverage
 
-# get coverage reports
+# get lib coverage reports
+$(BUILDDIR)/%.$(SRCEXT).$(COVEXT): $(SRCDIR)/%.$(SRCEXT)
+	@mkdir -p ./coverage/$(dir $<)
+	gcov -r $< --object-directory $(dir $@)
+	mv $(notdir $@) ./coverage/$<.gcov
+
+# get tests coverage reports
 $(TESTBUILD)/%.$(SRCEXT).$(COVEXT): $(TESTDIR)/%.$(SRCEXT)
-	@mkdir -p $(dir $@)
-	gcov $< --object-directory $(dir $@)
+	gcov -r $< --object-directory $(dir $@)
 	mv $(notdir $@) ./$(TESTCOV)
 
 .PHONY: all clean clear test
