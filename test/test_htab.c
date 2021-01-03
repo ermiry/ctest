@@ -319,6 +319,137 @@ static void test_htab_int_remove_multiple (void) {
 
 }
 
+static void test_htab_int_get_single (void) {
+
+	Htab *map = test_htab_create ();
+
+	unsigned int idx = 0;
+	Data *data = data_new (idx, 1000);
+
+	const void *key = &idx;
+	int resutl = htab_insert (
+		map,
+		key, sizeof (unsigned int),
+		data, sizeof (Data)
+	);
+
+	test_check_int_eq (resutl, 0, NULL);
+	test_check_int_eq ((int) map->count, 1, NULL);
+	test_check_false (htab_is_empty (map));
+	test_check_true (htab_is_not_empty (map));
+
+	void *value = NULL;
+
+	// get bad value
+	unsigned int bad_key = 1;
+	key = &bad_key;
+	value = htab_get (map, key, sizeof (unsigned int));
+	test_check_null_ptr (value);
+	test_check_int_eq ((int) map->count, 1, NULL);
+	test_check_false (htab_is_empty (map));
+	test_check_true (htab_is_not_empty (map));
+
+	// get good value
+	unsigned int good_key = 0;
+	key = &good_key;
+	value = htab_get (map, key, sizeof (unsigned int));
+	test_check_ptr (value);
+	test_check_int_eq ((int) map->count, 1, NULL);
+	test_check_false (htab_is_empty (map));
+	test_check_true (htab_is_not_empty (map));
+
+	// get good value again
+	key = &good_key;
+	value = htab_get (map, key, sizeof (unsigned int));
+	test_check_ptr (value);
+	test_check_int_eq ((int) map->count, 1, NULL);
+	test_check_false (htab_is_empty (map));
+	test_check_true (htab_is_not_empty (map));
+
+	// get bad again
+	key = &bad_key;
+	value = htab_get (map, key, sizeof (unsigned int));
+	test_check_null_ptr (value);
+	test_check_int_eq ((int) map->count, 1, NULL);
+	test_check_false (htab_is_empty (map));
+	test_check_true (htab_is_not_empty (map));
+
+	// htab_print (map);
+
+	htab_destroy (map);
+
+}
+
+static void test_htab_int_get_multple (void) {
+
+	Htab *map = test_htab_create ();
+
+	// insert multiple values
+	unsigned int val = 1000;
+	Data *data = NULL;	
+	for (unsigned int i = 0; i < 10; i++) {
+		const void *key = &i;
+
+		data = data_new (i, val);
+		val++;
+
+		int result = htab_insert (
+			map,
+			key, sizeof (unsigned int),
+			data, sizeof (Data)
+		);
+
+		test_check_int_eq (result, 0, NULL);
+	}
+
+	test_check_int_eq ((int) map->count, 10, NULL);
+	test_check_false (htab_is_empty (map));
+	test_check_true (htab_is_not_empty (map));
+
+	void *value = NULL;
+
+	// get bad value
+	unsigned int bad_key = 11;
+	void *key = &bad_key;
+	value = htab_get (map, key, sizeof (unsigned int));
+	test_check_null_ptr (value);
+	test_check_int_eq ((int) map->count, 10, NULL);
+	test_check_false (htab_is_empty (map));
+	test_check_true (htab_is_not_empty (map));
+
+	// get good value
+	unsigned int good_key = 0;
+	key = &good_key;
+	value = htab_get (map, key, sizeof (unsigned int));
+	test_check_ptr (value);
+	test_check_int_eq ((int) map->count, 10, NULL);
+	test_check_false (htab_is_empty (map));
+	test_check_true (htab_is_not_empty (map));
+
+	// get another good value
+	unsigned int another_good_key = 6;
+	key = &another_good_key;
+	value = htab_get (map, key, sizeof (unsigned int));
+	test_check_ptr (value);
+	test_check_int_eq ((int) map->count, 10, NULL);
+	test_check_false (htab_is_empty (map));
+	test_check_true (htab_is_not_empty (map));
+
+	// get another bad value
+	unsigned int another_bad_key = 127;
+	key = &another_bad_key;
+	value = htab_get (map, key, sizeof (unsigned int));
+	test_check_null_ptr (value);
+	test_check_int_eq ((int) map->count, 10, NULL);
+	test_check_false (htab_is_empty (map));
+	test_check_true (htab_is_not_empty (map));
+
+	// htab_print (map);
+
+	htab_destroy (map);
+
+}
+
 void collections_tests_htab (void) {
 
 	(void) printf ("Testing COLLECTIONS htab...\n");
@@ -330,6 +461,10 @@ void collections_tests_htab (void) {
 	test_htab_int_remove_single ();
 
 	test_htab_int_remove_multiple ();
+
+	test_htab_int_get_single ();
+
+	test_htab_int_get_multple ();
 
 	(void) printf ("Done!\n");
 
