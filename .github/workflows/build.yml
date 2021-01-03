@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    name: Ctest build
+    name: CTest build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -20,7 +20,45 @@ jobs:
 
       - name: gcc make
         run: make
+
+      - name: Archive Shared Library
+        uses: actions/upload-artifact@v2
+        with:
+          name: ctest-lib
+          path: ./bin/libctest.so
+          retention-days: 1
+
       - name: clean
         run: make clean
+
       - name: g++ make
         run: make CC=g++
+
+  test:
+    name: CTest tests
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Get Shared Library
+        uses: actions/download-artifact@v2
+        with:
+          name: ctest-lib
+          path: ./bin
+
+      # - name: Display working directory structure
+      #   run: ls -R
+
+      - name: gcc tests
+        run: make test
+      - name: gcc run tests
+        run: bash test/run.sh
+
+      - name: clear
+        run: make clear
+
+      - name: g++ tests
+        run: make CC=g++ test
+      - name: g++ run tests
+        run: bash test/run.sh
