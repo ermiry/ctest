@@ -38,7 +38,7 @@ jobs:
       - name: gcc make
         run: make TYPE=test
       - name: gcc tests
-        run: make test
+        run: make TYPE=test test
 
       # run
       - name: test
