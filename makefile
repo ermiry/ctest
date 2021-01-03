@@ -115,7 +115,6 @@ clear:
 	@$(RM) -rf $(BUILDDIR)
 	@$(RM) -rf $(TESTBUILD)
 	@$(RM) -rf $(TESTTARGET)
-	@$(RM) -rf $(TESTCOV)
 
 clean: clear
 	@$(RM) -rf $(TARGETDIR)
@@ -155,8 +154,8 @@ $(TESTBUILD)/%.$(OBJEXT): $(TESTDIR)/%.$(SRCEXT)
 	@sed -e 's/.*://' -e 's/\\$$//' < $(TESTBUILD)/$*.$(DEPEXT).tmp | fmt -1 | sed -e 's/^ *//' -e 's/$$/:/' >> $(TESTBUILD)/$*.$(DEPEXT)
 	@rm -f $(TESTBUILD)/$*.$(DEPEXT).tmp
 
-test-run:
-	@bash test/run.sh
+# test-run:
+# 	@bash test/run.sh
 
 test-coverage: $(COVOBJS)
 
@@ -164,7 +163,7 @@ coverage-init:
 	@mkdir -p ./coverage
 	@mkdir -p ./$(TESTCOV)
 
-coverage: coverage-init test-run test-coverage
+coverage: coverage-init test-coverage
 
 # get lib coverage reports
 $(BUILDDIR)/%.$(SRCEXT).$(COVEXT): $(SRCDIR)/%.$(SRCEXT)
