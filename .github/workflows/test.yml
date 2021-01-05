@@ -1,0 +1,28 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - 'work'
+
+jobs:
+  build:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Read version file
+        id: get_version
+        run: echo "::set-output name=version::$(cat version.txt)"
+
+      - name: Display version
+        run: echo ${{ steps.get_version.outputs.version }}
+
+      - name: Read changelog
+        id: get_changes
+        run: echo "::set-output name=changes::$(CHANGELOG.md)"
+
+      - name: Display changelog
+        run: echo ${{ steps.get_changes.outputs.changes }}
