@@ -29,5 +29,5 @@ jobs:
           changes="${changes//$'\r'/'%0D'}"
           echo "::set-output name=changes::$changes"
 
-      - name: Display changelog
-        run: echo ${{ steps.get_changes.outputs.changes }}
+      # - name: Display changelog
+      #   run: echo ${{ steps.get_changes.outputs.changes }}
