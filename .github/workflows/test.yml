@@ -22,7 +22,7 @@ jobs:
 
       - name: Read changelog
         id: get_changes
-        run: echo "::set-output name=changes::$(CHANGELOG.md)"
+        run: echo "::set-output name=changes::$(cat CHANGELOG.md)"
 
       - name: Display changelog
         run: echo ${{ steps.get_changes.outputs.changes }}
